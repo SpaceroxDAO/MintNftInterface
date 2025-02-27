@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import os
 from datetime import datetime
-import json
 
 # Set page config
 st.set_page_config(
@@ -35,14 +34,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def validate_url(url):
-    """Validate if the provided string is a URL."""
-    try:
-        result = requests.head(url)
-        return result.status_code == 200
-    except:
-        return False
-
 def mint_ip_asset(name, image_url, voice_url):
     """Mint IP asset using the Crossmint API."""
     API_KEY = os.getenv("CROSSMINT_API_KEY")
@@ -50,7 +41,7 @@ def mint_ip_asset(name, image_url, voice_url):
         raise ValueError("API key not found in environment variables")
 
     url = "https://staging.crossmint.com/api/v1/ip/collections/f44f5c02-6fb4-4841-9423-e1e192a1c539/ipassets"
-    
+
     payload = {
         "owner": "email:creator@example.com:story-testnet",
         "nftMetadata": {
@@ -104,40 +95,29 @@ def mint_ip_asset(name, image_url, voice_url):
 
 # Main UI
 st.title("IP Asset Minter")
-st.markdown("Create and mint your voice IP assets with customizable properties.")
+st.markdown("Enter the details below to mint your voice IP asset:")
 
 # Input form
-with st.form("mint_form"):
-    name = st.text_input("Voice Character Name", placeholder="e.g., John Smith")
-    image_url = st.text_input("Image URL", placeholder="https://example.com/image.jpg")
-    voice_url = st.text_input("Voice Sample URL", placeholder="https://example.com/voice.mp3")
-    
-    submit_button = st.form_submit_button("Mint IP Asset")
+name = st.text_input("Voice Character Name", placeholder="e.g., Morgan Freeman")
+image_url = st.text_input("Character Image URL", placeholder="Enter the URL of the character's image")
+voice_url = st.text_input("Voice Sample URL", placeholder="Enter the URL of the voice sample (MP3)")
 
-    if submit_button:
-        # Validate inputs
-        if not all([name, image_url, voice_url]):
-            st.error("Please fill in all fields.")
-        elif not validate_url(image_url):
-            st.error("Invalid image URL. Please provide a valid URL.")
-        elif not validate_url(voice_url):
-            st.error("Invalid voice sample URL. Please provide a valid URL.")
-        else:
-            try:
-                with st.spinner("Minting IP asset..."):
-                    result = mint_ip_asset(name, image_url, voice_url)
-                
-                # Display results
-                st.success("IP Asset minted successfully!")
-                
-                # Create expandable section for detailed results
-                with st.expander("View Minting Details"):
-                    st.json(result)
-                
-            except ValueError as e:
-                st.error(f"Error: {str(e)}")
-            except Exception as e:
-                st.error(f"An error occurred while minting: {str(e)}")
+if st.button("Mint IP Asset"):
+    if all([name, image_url, voice_url]):
+        try:
+            with st.spinner("Minting IP asset..."):
+                result = mint_ip_asset(name, image_url, voice_url)
+
+            st.success("✅ IP Asset minted successfully!")
+
+            # Display the minting results
+            st.subheader("Minting Results:")
+            st.json(result)
+
+        except Exception as e:
+            st.error(f"Error during minting: {str(e)}")
+    else:
+        st.warning("Please fill in all fields before minting.")
 
 # Add helpful information
 st.markdown("---")
