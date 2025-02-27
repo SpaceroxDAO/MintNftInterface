@@ -95,14 +95,27 @@ def mint_ip_asset(name, image_url, voice_url):
 
     # Debug logging
     st.write("Debug: Making request to:", url)
+    st.write("Debug: Request payload:", payload)
 
-    response = requests.post(url, json=payload, headers=headers)
-    response_json = response.json()
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        st.write("Debug: Response status code:", response.status_code)
+        st.write("Debug: Response headers:", dict(response.headers))
 
-    # Debug logging
-    st.write("Debug: Response status code:", response.status_code)
+        # Get raw response content
+        raw_content = response.text
+        st.write("Debug: Raw response:", raw_content)
 
-    return response_json
+        # Try to parse JSON
+        if response.content:
+            return response.json()
+        else:
+            return {"error": True, "message": "Empty response from server"}
+
+    except requests.exceptions.RequestException as e:
+        return {"error": True, "message": f"Request failed: {str(e)}"}
+    except ValueError as e:
+        return {"error": True, "message": f"Failed to parse response: {str(e)}, Raw response: {raw_content}"}
 
 # Main UI
 st.title("IP Asset Minter")
@@ -123,8 +136,6 @@ if st.button("Mint IP Asset"):
                 st.error(f"Error: {result['message']}")
             else:
                 st.success("✅ IP Asset minted successfully!")
-
-                # Display the minting results
                 st.subheader("Minting Results:")
                 st.json(result)
 
