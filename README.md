@@ -2,6 +2,8 @@
 
 A Streamlit web application for minting IP assets using the Crossmint API.
 
+[https://replit.com/@adamxboyle/MintNftInterface](https://mint-nft-interface-adamxboyle.replit.app/)
+
 ## Setup Instructions
 
 1. Make sure you have Python installed on your system
