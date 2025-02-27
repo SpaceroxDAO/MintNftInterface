@@ -40,6 +40,9 @@ def mint_ip_asset(name, image_url, voice_url):
     if not API_KEY:
         raise ValueError("API key not found in environment variables")
 
+    # Debug logging
+    st.write("Debug: Using API key starting with:", API_KEY[:12] + "...")
+
     url = "https://staging.crossmint.com/api/v1/ip/collections/f44f5c02-6fb4-4841-9423-e1e192a1c539/ipassets"
 
     payload = {
@@ -90,8 +93,16 @@ def mint_ip_asset(name, image_url, voice_url):
         "Content-Type": "application/json"
     }
 
+    # Debug logging
+    st.write("Debug: Making request to:", url)
+
     response = requests.post(url, json=payload, headers=headers)
-    return response.json()
+    response_json = response.json()
+
+    # Debug logging
+    st.write("Debug: Response status code:", response.status_code)
+
+    return response_json
 
 # Main UI
 st.title("IP Asset Minter")
@@ -108,11 +119,14 @@ if st.button("Mint IP Asset"):
             with st.spinner("Minting IP asset..."):
                 result = mint_ip_asset(name, image_url, voice_url)
 
-            st.success("✅ IP Asset minted successfully!")
+            if "error" in result and result["error"]:
+                st.error(f"Error: {result['message']}")
+            else:
+                st.success("✅ IP Asset minted successfully!")
 
-            # Display the minting results
-            st.subheader("Minting Results:")
-            st.json(result)
+                # Display the minting results
+                st.subheader("Minting Results:")
+                st.json(result)
 
         except Exception as e:
             st.error(f"Error during minting: {str(e)}")
