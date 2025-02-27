@@ -43,6 +43,13 @@
             font-size: 1rem;
             box-sizing: border-box;
         }
+        input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
 
         button {
             background-color: #4CAF50;
@@ -129,6 +136,18 @@
                 >
             </div>
 
+            <div class="form-group">
+                <label for="mintingFee">Minting Fee (WIP Tokens)</label>
+                <input 
+                    id="mintingFee" 
+                    type="number" 
+                    required 
+                    min="1"
+                    value="100"
+                    placeholder="Enter minting fee in WIP tokens"
+                >
+            </div>
+
             <button type="submit" id="submitButton">Mint IP Asset</button>
         </form>
 
@@ -148,11 +167,14 @@
         async function fetchConfig() {
             try {
                 const response = await fetch('/config');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const config = await response.json();
                 apiKey = config.apiKey;
             } catch (error) {
                 console.error('Failed to fetch API key:', error);
-                showError('Failed to initialize. Please refresh the page.');
+                showError('Failed to initialize. Please check your connection and refresh the page.');
             }
         }
 
@@ -180,6 +202,7 @@
             const name = document.getElementById('name').value;
             const imageUrl = document.getElementById('imageUrl').value;
             const voiceUrl = document.getElementById('voiceUrl').value;
+            const mintingFee = parseInt(document.getElementById('mintingFee').value, 10);
 
             submitButton.disabled = true;
             submitButton.textContent = 'Minting...';
@@ -238,12 +261,17 @@
                         licenseTerms: [{
                             type: 'commercial-use',
                             terms: {
-                                defaultMintingFee: 100,
+                                defaultMintingFee: mintingFee,
                                 currency: '0x1514000000000000000000000000000000000000'
                             }
                         }]
                     })
                 });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}\n${errorText}`);
+                }
 
                 const data = await response.json();
 
@@ -251,9 +279,6 @@
                 if (response.status === 502) {
                     messageDiv.className = 'message error';
                     messageDiv.textContent = '❌ API temporarily unavailable. Please try again in a few minutes.';
-                } else if (!response.ok) {
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = `❌ Request failed (Status ${response.status})`;
                 } else {
                     messageDiv.className = 'message success';
                     messageDiv.textContent = '✅ IP Asset minted successfully!';
@@ -264,6 +289,7 @@
                 messageDiv.style.display = 'block';
                 messageDiv.className = 'message error';
                 messageDiv.textContent = `❌ Error: ${error.message}`;
+                console.error('Minting error:', error);
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'Mint IP Asset';

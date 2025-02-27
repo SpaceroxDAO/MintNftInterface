@@ -15,6 +15,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             self.end_headers()
             config = {
                 'apiKey': os.getenv('CROSSMINT_API_KEY', '')
@@ -23,9 +25,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         return super().do_GET()
 
-    def end_headers(self):
+    def do_OPTIONS(self):
+        self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        super().end_headers()
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
 
 with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:
     print(f"Serving at port {PORT}")
