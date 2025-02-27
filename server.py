@@ -1,5 +1,7 @@
 import http.server
 import socketserver
+import os
+import json
 
 PORT = 5000
 DIRECTORY = "."
@@ -7,6 +9,19 @@ DIRECTORY = "."
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
+
+    def do_GET(self):
+        if self.path == '/config':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            config = {
+                'apiKey': os.getenv('CROSSMINT_API_KEY', '')
+            }
+            self.wfile.write(json.dumps(config).encode())
+            return
+        return super().do_GET()
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
