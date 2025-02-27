@@ -41,9 +41,6 @@ def mint_ip_asset(name, image_url, voice_url):
     if not API_KEY:
         raise ValueError("API key not found in environment variables")
 
-    # Debug logging
-    st.write("Debug: Using API key starting with:", API_KEY[:12] + "...")
-
     url = "https://staging.crossmint.com/api/v1/ip/collections/f44f5c02-6fb4-4841-9423-e1e192a1c539/ipassets"
 
     payload = {
@@ -95,43 +92,20 @@ def mint_ip_asset(name, image_url, voice_url):
         "Accept": "application/json"
     }
 
-    # Debug logging
-    st.write("Debug: Making request to:", url)
-    st.write("Debug: Request payload:", json.dumps(payload, indent=2))
-
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=30)
-        st.write("Debug: Response status code:", response.status_code)
-        st.write("Debug: Response headers:", dict(response.headers))
-
-        # Get raw response content
-        raw_content = response.text
-        st.write("Debug: Raw response:", raw_content)
 
         if response.status_code == 502:
-            return {
-                "error": True,
-                "message": "The Crossmint API is temporarily unavailable (502 Bad Gateway). Please try again in a few minutes."
-            }
+            return {"error": True, "message": "API temporarily unavailable. Please try again in a few minutes."}
         elif response.status_code != 200:
-            return {
-                "error": True,
-                "message": f"API request failed with status code {response.status_code}"
-            }
+            return {"error": True, "message": f"Request failed (Status {response.status_code})"}
 
-        # Try to parse JSON response
-        try:
-            return response.json()
-        except ValueError:
-            return {
-                "error": True,
-                "message": f"Invalid JSON response from server. Status code: {response.status_code}"
-            }
+        return response.json()
 
     except requests.exceptions.Timeout:
-        return {"error": True, "message": "Request timed out. The API server took too long to respond."}
+        return {"error": True, "message": "Request timed out. Please try again."}
     except requests.exceptions.RequestException as e:
-        return {"error": True, "message": f"Request failed: {str(e)}"}
+        return {"error": True, "message": str(e)}
 
 # Main UI
 st.title("IP Asset Minter")
@@ -149,14 +123,14 @@ if st.button("Mint IP Asset"):
                 result = mint_ip_asset(name, image_url, voice_url)
 
             if "error" in result and result["error"]:
-                st.error(f"Error: {result['message']}")
+                st.error(f"❌ Minting failed: {result['message']}")
             else:
                 st.success("✅ IP Asset minted successfully!")
-                st.subheader("Minting Results:")
-                st.json(result)
+                with st.expander("View Details"):
+                    st.json(result)
 
         except Exception as e:
-            st.error(f"Error during minting: {str(e)}")
+            st.error(f"❌ Error: {str(e)}")
     else:
         st.warning("Please fill in all fields before minting.")
 
