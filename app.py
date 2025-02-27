@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import os
 from datetime import datetime
+import json
 
 # Set page config
 st.set_page_config(
@@ -90,15 +91,16 @@ def mint_ip_asset(name, image_url, voice_url):
 
     headers = {
         "X-API-KEY": API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
     }
 
     # Debug logging
     st.write("Debug: Making request to:", url)
-    st.write("Debug: Request payload:", payload)
+    st.write("Debug: Request payload:", json.dumps(payload, indent=2))
 
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
         st.write("Debug: Response status code:", response.status_code)
         st.write("Debug: Response headers:", dict(response.headers))
 
@@ -106,16 +108,30 @@ def mint_ip_asset(name, image_url, voice_url):
         raw_content = response.text
         st.write("Debug: Raw response:", raw_content)
 
-        # Try to parse JSON
-        if response.content:
-            return response.json()
-        else:
-            return {"error": True, "message": "Empty response from server"}
+        if response.status_code == 502:
+            return {
+                "error": True,
+                "message": "The Crossmint API is temporarily unavailable (502 Bad Gateway). Please try again in a few minutes."
+            }
+        elif response.status_code != 200:
+            return {
+                "error": True,
+                "message": f"API request failed with status code {response.status_code}"
+            }
 
+        # Try to parse JSON response
+        try:
+            return response.json()
+        except ValueError:
+            return {
+                "error": True,
+                "message": f"Invalid JSON response from server. Status code: {response.status_code}"
+            }
+
+    except requests.exceptions.Timeout:
+        return {"error": True, "message": "Request timed out. The API server took too long to respond."}
     except requests.exceptions.RequestException as e:
         return {"error": True, "message": f"Request failed: {str(e)}"}
-    except ValueError as e:
-        return {"error": True, "message": f"Failed to parse response: {str(e)}, Raw response: {raw_content}"}
 
 # Main UI
 st.title("IP Asset Minter")
