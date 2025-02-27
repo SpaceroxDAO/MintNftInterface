@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Asset Minter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f9f9f9;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        details {
+            margin-top: 1rem;
+        }
+
+        summary {
+            cursor: pointer;
+            color: #4a4a4a;
+            padding: 0.5rem 0;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IP Asset Minter</h1>
+        <form id="mintForm">
+            <div class="form-group">
+                <label for="name">Voice Character Name</label>
+                <input 
+                    id="name" 
+                    type="text" 
+                    required 
+                    placeholder="e.g., Morgan Freeman"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="imageUrl">Character Image URL</label>
+                <input 
+                    id="imageUrl" 
+                    type="url" 
+                    required 
+                    placeholder="Enter the URL of the character's image"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="voiceUrl">Voice Sample URL</label>
+                <input 
+                    id="voiceUrl" 
+                    type="url" 
+                    required 
+                    placeholder="Enter the URL of the voice sample (MP3)"
+                >
+            </div>
+
+            <button type="submit" id="submitButton">Mint IP Asset</button>
+        </form>
+
+        <div id="message" style="display: none;" class="message"></div>
+        <div id="details" style="display: none;">
+            <details>
+                <summary>View Details</summary>
+                <pre id="resultJson"></pre>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('mintForm');
+        const submitButton = document.getElementById('submitButton');
+        const messageDiv = document.getElementById('message');
+        const detailsDiv = document.getElementById('details');
+        const resultJson = document.getElementById('resultJson');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+            const voiceUrl = document.getElementById('voiceUrl').value;
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Minting...';
+            messageDiv.style.display = 'none';
+            detailsDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('https://staging.crossmint.com/api/v1/ip/collections/f44f5c02-6fb4-4841-9423-e1e192a1c539/ipassets', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': process.env.CROSSMINT_API_KEY,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        owner: 'email:creator@example.com:story-testnet',
+                        nftMetadata: {
+                            name: `${name} Voice License`,
+                            description: `A voice sample of the iconic narration style of ${name}`,
+                            image: imageUrl
+                        },
+                        ipAssetMetadata: {
+                            title: `${name} Voice Model`,
+                            createdAt: new Date().toISOString(),
+                            ipType: 'voice',
+                            creators: [
+                                {
+                                    name: 'AI Voice Labs',
+                                    email: 'creator@example.com',
+                                    crossmintUserLocator: 'email:creator@example.com:story-testnet',
+                                    contributionPercent: 100
+                                }
+                            ],
+                            media: [
+                                {
+                                    name: `${name} Voice Sample`,
+                                    url: voiceUrl,
+                                    mimeType: 'audio/mpeg'
+                                }
+                            ],
+                            attributes: [
+                                {
+                                    key: 'Voice Type',
+                                    value: 'Narration'
+                                },
+                                {
+                                    key: 'Voice Character',
+                                    value: name
+                                },
+                                {
+                                    key: 'License Type',
+                                    value: 'Commercial Use'
+                                }
+                            ]
+                        },
+                        licenseTerms: [{
+                            type: 'commercial-use',
+                            terms: {
+                                defaultMintingFee: 100,
+                                currency: '0x1514000000000000000000000000000000000000'
+                            }
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+
+                messageDiv.style.display = 'block';
+                if (response.status === 502) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = '❌ API temporarily unavailable. Please try again in a few minutes.';
+                } else if (!response.ok) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = `❌ Request failed (Status ${response.status})`;
+                } else {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = '✅ IP Asset minted successfully!';
+                    detailsDiv.style.display = 'block';
+                    resultJson.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'message error';
+                messageDiv.textContent = `❌ Error: ${error.message}`;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Mint IP Asset';
+            }
+        });
+    </script>
+</body>
+</html>
